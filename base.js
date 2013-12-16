@@ -11,6 +11,12 @@ var _g_base={
         }
         return s4() + s4() + s4() + s4() + s4() +  s4() + s4() + s4();
     },
+    getUrlParameterByName:function(name) {
+        name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+        var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+            results = regex.exec(location.search);
+        return results == null ? null : decodeURIComponent(results[1].replace(/\+/g, " "));
+    },
     parseTemplate:function(template){//该函数对模板对象进行处理，模板可以是underscore template func , 模板字符串，text取得的文本
         var returned=null;
         if(typeof template=='function') returned=template;
