@@ -146,6 +146,18 @@ var _g_base={
             if(typeof min=="undefined") min=0;
             if(typeof max=="undefined") max=100;
             return Math.floor(Math.random() * (max - min + 1)) + min;
+        },
+        round:function(value,seperate){
+            var result=value;
+            if(typeof seperate==undefined) seperate=0.5;
+            var intValue=parseInt(value);
+            var dValue=value-intValue;
+            if(dValue<seperate){
+                result=intValue;
+            }
+            else{
+                result=intValue+1;
+            }    
         }
     },
     hasTouch:function(){
@@ -155,7 +167,31 @@ var _g_base={
       } catch (e) {  
         return false;  
       }  
-    }()
+    }(),
+    simulateTouch:function(){
+        //提供一种渠道来模拟touch上的mousedown，mouseup，mousemove等功能
+        function touchHandler(event) {
+            var touch = event.changedTouches[0];
+        
+            var simulatedEvent = document.createEvent("MouseEvent");
+                simulatedEvent.initMouseEvent({
+                touchstart: "mousedown",
+                touchmove: "mousemove",
+                touchend: "mouseup"
+            }[event.type], true, true, window, 1,
+                touch.screenX, touch.screenY,
+                touch.clientX, touch.clientY, false,
+                false, false, false, 0, null);
+        
+            touch.target.dispatchEvent(simulatedEvent);
+            event.preventDefault();
+        }
+        
+        document.addEventListener("touchstart", touchHandler, true);
+        document.addEventListener("touchmove", touchHandler, true);
+        document.addEventListener("touchend", touchHandler, true);
+        document.addEventListener("touchcancel", touchHandler, true);
+    }
 }
 if(typeof require=="undefined"){
     if(!window._g) window._g={};
