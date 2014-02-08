@@ -169,10 +169,19 @@ var _g_base={
       }  
     }(),
     simulateTouch:function(){
+        // var getPointerEvent = function(event) {
+            // return event.originalEvent.targetTouches ? event.originalEvent.targetTouches[0] : event;
+        // };
+        var touchStarted = false, // detect if a touch event is sarted
+        currX = 0,
+        currY = 0,
+        cachedX = 0,
+        cachedY = 0;
         //提供一种渠道来模拟touch上的mousedown，mouseup，mousemove等功能
         function touchHandler(event) {
+            var pointer = event.changedTouches[0];
             var touch = event.changedTouches[0];
-        
+            // caching the current x
             var simulatedEvent = document.createEvent("MouseEvent");
                 simulatedEvent.initMouseEvent({
                 touchstart: "mousedown",
@@ -184,6 +193,25 @@ var _g_base={
                 false, false, false, 0, null);
         
             touch.target.dispatchEvent(simulatedEvent);
+            if(event.type=="touchstart"){
+                cachedX = currX = pointer.pageX;
+                // caching the current y
+                cachedY = currY = pointer.pageY;
+                touchStarted = true;                
+                setTimeout(function (){
+                    if ((cachedX === currX) && !touchStarted && (cachedY === currY)) {
+                        // Here you get the Tap event
+                        $(touch.target).trigger('click');
+                    }
+                },200);               
+            }
+            if(event.type=="touchend"){
+                touchStarted = false;
+            }
+            if(event.type=="touchmove"){
+                currX = pointer.pageX;
+                currY = pointer.pageY;
+            }
             event.preventDefault();
         }
         
