@@ -1,0 +1,39 @@
+如何使用模板Debug工具
+-----------------------
+
+1. 外部参数的_gDebug的设定
+
+   _gDebug.template =[...] , 以数组的方式来加载外部模板
+   
+   每个模板的dict={
+       name:'text!T/interaction_edit/docinfo.js',//模板的名称，通常是原始模板的地址名称，除非你另外写了模板命名
+       url:'text!T/dev/docinfo.js' //url是调试环境中需要的模板地址，页面会在debug开启前自动加载所有需要的模板
+   }
+   
+   
+2. 调试方法
+   
+   所有的模板render需要通过_g.renderT()的函数来生成el ,
+   原有的方式: $(containment).append(_.template(T,{}))
+   现在的方式 : $(containment).append(_g.renderT(T,data,key,name))
+   注 ：  T: 代表模板（可以是string，也可以是已经_.template()的函数)
+         data: 代表模板的赋值，
+         key: 键值，如果设定的话，data就变成了 {key:data}
+         *name : 该模板的名称，通常采用'text!T/interaction_edit/docinfo.js'的命名来辩明路径，当然也可以自定义
+                 name是调试的关键，如果没有name，那么就无法跟踪调试这个模板
+                 
+   凡是采用 _g.mvc生成的模板render本身就已经具有了renderT的功能，但是需要设定 view:{....,templateName:..}来开启该功能
+   
+   模板js文件中的设定：
+      在模板js文件中，需要增加相应的attr ， "data-gtemplate=模板name",
+      这样做的目的是为了让模板能够与页面中render的模板相对应，方便查找和调试
+      为了在非debug模式下不显示这个attr，我们可以采用下面的写法
+      <%=_g.debug?_g.debug.set_template("name/to/template"):""%> 
+      写在最外层的嵌套wrap中
+      
+   只有通过renderT生成的模板才是可以调试的，所以凡是可以调试的模板，都呈现高亮状态，点击以后可以通过修改textarea来调试
+   点击调试按钮会自动替换当前页面模板内容
+   
+3.  新模板调试
+    点击"new" 可以在页面中任意创建新的模板内容
+    只需要添加模板，data数据， 然后在container中填入所需要加入到的位置，点击调试即可。

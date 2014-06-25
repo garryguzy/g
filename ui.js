@@ -18,7 +18,7 @@ var _g_ui={
     center:function(opts){//使一个dom元素进行居中
         var defaults={
             containment:null,//设为null，默认没有parent，根据当前页面来定位居中，否则的话将根据设定的
-            Item:null//设定需要居中的元素，
+            //Item:null//设定需要居中的元素，
         }
         if(typeof opts=='string') opts={containments:null,Item:opts};
         else opts=opts?$.extend({},defaults,opts):defaults; 
@@ -38,7 +38,7 @@ var _g_ui={
     centerImage:function(opts){//使一个Image能够在一个Dom中自适应居中
         var defaults={
             containment:null,//Image对象的父对象，必须有
-            Item:null,//设定需要居中的元素，
+            //Item:null,//设定需要居中的元素，
             parentWidth:null,//父对象的宽度，用来作为居中的参照
             parentHeight:null,//父对象的高度
             width:null,//图片的宽度
@@ -75,6 +75,138 @@ var _g_ui={
                 width=opts.parentHeight*(opts.width/opts.height);         
         };   
         return {width:width,height:height}; 
+    },
+    fitImage:function(opts){
+        //使得图片在父对象内部按照一定的情况来适应
+        //参数,opts.items :图片对象,相对于他的父对象
+        //opts.fit : 0,1,2 0:表示全铺满， 1：代表缩小适应， 2， 代表缩小撑满
+        //opts.width, opts.height 代表图片的尺寸
+        //opts.lock , true/false ,表示是否锁定，一旦锁定，该image的大小就会自动锁定在parent下面，依据parent的尺寸变化进行相应的调整。
+        //opts.useMargin ： 表示使用margin精准定位来替代auto margin
+        if(!opts||!opts.items) return false;
+        if(!opts.fit) opts.fit=0;
+        $(opts.items).each(function(){
+            var $this=$(this);
+            if(opts.width==undefined) opts.width=$(this).width();
+            if(opts.height==undefined) opts.height=$(this).height();
+            var itemWidth=opts.width;
+            var itemHeight=opts.height;
+            var parent=$(this).parent();
+            opts.parentHeight=opts.parentHeight||parent.height();
+            opts.parentWidth=opts.parentWidth||parent.width();
+            if(opts.fit==0){
+                //撑满 100%就行
+                $this.css({
+                    width:'100%',
+                    height:'100%',
+                    top:'',
+                    left:''
+                })
+                itemWidth=opts.parentWidth;
+                itemHeight=opts.parentHeight;
+            }
+            if(opts.fit==1){
+                parent.css({
+                    'line-height':opts.parentHeight+'px'
+                    //'text-align':'center'
+                })  
+                if(!opts.useMargin){
+                    parent.css('text-align','center');
+                }
+                //代表缩小自适应
+                if(opts.width/opts.height>=opts.parentWidth/opts.parentHeight){
+                        itemWidth=opts.parentWidth;
+                        itemHeight=opts.parentWidth/(opts.width/opts.height);
+                        $this.css({
+                            'width':'100%',
+                            'height':'auto',
+                            'vertical-align':'middle',
+                            'left':'',
+                            'top':'',
+                            'display':'inline-block',
+                            'position':'relative'
+                        });
+                        if(opts.useMargin){
+                            var resultHeight=opts.parentWidth/(opts.width/opts.height);
+                            $this.css('margin-top',(opts.parentHeight-resultHeight)/2+"px");
+                            $this.css('margin-bottom',(opts.parentHeight-resultHeight)/2+"px");
+                            $this.css({
+                                'margin-left':0,
+                                'margin-right':0
+                            })
+                            $this.css('position','absolute');
+                        }
+                }
+                else {
+                        itemHeight=opts.parentHeight;
+                        itemWidth=opts.parentHeight*(opts.width/opts.height);
+                         $this.css({
+                            'width':'auto',
+                            'height':'100%',
+                            'vertical-align':'middle',
+                            'left':'',
+                            'top':'',
+                            'display':'inline-block',
+                            'position':'relative'
+                        });  
+                        if(opts.useMargin){
+                           var resultWidth=opts.parentHeight*(opts.width/opts.height);  
+                           $this.css('margin-left',(opts.parentWidth-resultWidth)/2+"px");
+                            $this.css('margin-right',(opts.parentWidth-resultWidth)/2+"px");
+                            $this.css({
+                                'margin-top':0,
+                                'margin-bottom':0
+                            })
+                             $this.css('position','absolute');
+                        }
+                         // view.$el.find('.slidecontent').children('[data-index='+detail.iImg.indexOf(i)+']').css('margin-right',(common.iWidth-result.width)/2+"px"); 
+                };                 
+            }
+            if(opts.fit==2){
+                //这个适应有点像是剪切掉一部分的图片
+                parent.css({
+                    'line-height':opts.parentHeight+'px',
+                    'text-align':'center',
+                    'overflow':'hidden'
+                })  
+                if(opts.width/opts.height>=opts.parentWidth/opts.parentHeight){
+                        $this.css({
+                            'width':opts.parentHeight*opts.width/opts.height+'px',
+                            'height':opts.parentHeight+'px',
+                            'verticle-align':'middle',
+                            'position':'absolute',
+                            'left':'-'+(opts.parentHeight*opts.width/opts.height-opts.parentWidth)/2+'px',
+                            'top':0,
+                            'max-width':'none'
+                        });
+                        if(opts.useMargin){
+                            $this.css('left','');
+                            $this.css('margin-left','-'+(opts.parentHeight*opts.width/opts.height-opts.parentWidth)/2+'px');
+                        }
+                }
+                else {
+                         $this.css({
+                            'position':'absolute',
+                            'width':opts.parentWidth+'px',
+                            'height':opts.parentWidth/(opts.width/opts.height)+'px',
+                            'verticle-align':'middle',
+                            'top':'-'+(opts.parentWidth/(opts.width/opts.height)-opts.parentHeight)/2+'px',
+                            'left':0,
+                            'max-height':'none'
+                        }); 
+                        if(opts.useMargin){
+                            $this.css('top','');
+                            $this.css('margin-top','-'+(opts.parentWidth/(opts.width/opts.height)-opts.parentHeight)/2+'px');
+                        }        
+                };                  
+            }
+            if(opts.explicitSize){
+                $this.css({
+                    width:itemWidth,
+                    height:itemHeight
+                })
+            }
+        })
     },
     opacity:function(obj,value){
         
@@ -246,17 +378,52 @@ var _g_ui={
     sortByIds:function(opts){//根据给定的ids来对相应的domlist进行元素排序
         var defaults={
             containment:null,
-            item:'li',//对父对象范围内的什么元素进行排序
+            items:'li',//对父对象范围内的什么元素进行排序
             ids:null
         }
         opts=opts?$.extend({},defaults,opts):defaults;
         if(!opts.containment||!opts.ids) return;
         _.each(opts.ids,function(id){
-            if($(opts.containment).children(opts.item+'[id="'+id+'"]').length>0){
-                var i=$(opts.containment).children(opts.item+'[id="'+id+'"]').detach();
+            if($(opts.containment).children(opts.items+'[id="'+id+'"]').length>0){
+                var i=$(opts.containment).children(opts.items+'[id="'+id+'"]').detach();
                 $(opts.containment).append(i);
             }
         })
+    },
+    sortTreeByIds:function(opts,referenceRoot){
+        //对一个树下的元素进行重新整理排序，根据ids的顺序
+        //通常对一个树形结构排序来说，我们假设所有的元素都已经平行化了
+        var defaults={
+            containment:null,
+            items:'li',//对父对象范围内的什么元素进行排序
+            ids:null,
+            childrenKey:'children',
+            wrap:'ul',//默认是ul
+            wrapClass:null
+        }
+        //referenceRoot:对于tree遍历来说的话需要知道这个参考的父节点
+        opts=opts?$.extend({},defaults,opts):defaults;
+        if(!opts.containment||!opts.ids) return;
+        opts.root=referenceRoot||opts.containment;
+        _.each(opts.ids,function(i){
+            if($(opts.root).find(opts.items+'[id="'+i.id+'"]').length>0){
+                var el=$(opts.root).find(opts.items+'[id="'+i.id+'"]').detach();
+                if(!$(opts.containment).is(opts.wrap)&&!$(opts.containment).children(opts.wrap).length) {
+                    $(opts.containment).append(document.createElement(opts.wrap));
+                    if(opts.wrapClass) $(opts.containment).children(opts.wrap).addClass(opts.wrapClass);
+                    opts.containment=$(opts.containment).children(opts.wrap);
+                }
+                $(opts.containment).append(el);
+            }
+            if(i[opts.childrenKey]){
+                _g.ui.sortTreeByIds({
+                    containment:$(opts.containment).find(opts.items+'[id="'+i.id+'"]'),
+                    items:opts.items,
+                    ids:i[opts.childrenKey],
+                    childrenKey:opts.childrenKey
+                },referenceRoot?referenceRoot:opts.containment);
+            }
+        })        
     },
     findById:function(opts){//在containment的下面找到对应id的元素
         var defaults={
@@ -307,13 +474,13 @@ var _g_ui={
     getTreeIds:function(opts){//返回树状结构的ids，用于对树状结构的数组或者models进行排序，返回的结构以children为子元素集key
         var defaults={
             containment:null,//为树结构的root节点的Dom
-            item:null,//树状结构dom的每一个元素节点
+            items:null,//树状结构dom的每一个元素节点
             idAttribute:'id',//默认的属性取的attr('id')
             wrap:'ul'//包裹的设定，默认为'ul'
         }
         opts=opts?$.extend({},defaults,opts):defaults;      
         var returned=[];
-        if(!opts.containment||!opts.item) return false;
+        if(!opts.containment||!opts.items) return false;
         if(opts.wrap){
             if($(opts.containment).is(opts.wrap)) ;
             else{
@@ -322,12 +489,12 @@ var _g_ui={
             }
         }
         else ;
-        $(opts.containment).children(opts.item).each(function(){
+        $(opts.containment).children(opts.items).each(function(){
             var dict={};
             dict.id=$(this).attr(opts.idAttribute);
             dict.children=_g.ui.getTreeIds({
                 containment:$(this),
-                item:opts.item,
+                items:opts.items,
                 idAttribute:opts.idAttribute,
                 wrap:opts.wrap
             });
@@ -336,6 +503,7 @@ var _g_ui={
         return returned;        
     },
     dialog:function(opts){//生成一个根据指定大小的对话窗口,本功能为bootboxjs功能的扩展，opts属性可以参照bootboxjs需要的属性
+        //对全局的弹窗进行管理，控制弹窗的最小z-index，然后设定弹窗的弹出顺序
         var defaults={
             className:null//className是必须的参数，用于后面
         }
@@ -373,6 +541,23 @@ var _g_ui={
             var sel = window.getSelection();
             sel.removeAllRanges();
         }
+    },
+    isOverflowed:function(element){
+        //检查一个dom元素是否overflow
+        var returned={
+            x:false,
+            y:false
+        }
+        var patchSize=0;
+        if($.zoom&&$.zoom!=1) patchSize=2;
+        if(($(element)[0].offsetHeight+patchSize) < $(element)[0].scrollHeight){
+            returned.y=true;
+        }
+        if(($(element)[0].offsetWidth+patchSize) < $(element)[0].scrollWidth){
+            returned.x=true;
+           // your element have overflow
+        }
+        return returned;
     }
 }
 if(typeof require=="undefined"){

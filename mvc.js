@@ -1,6 +1,7 @@
 //mvc模块用于扩展mvc的功能
 //dependencies:[jquery,backbone,underscore,_g.base, _g.ui]
 /*jshint asi: true*/
+//新的mvc，将MVC的debug过程融入到代码中，使得debug成为了可能
 (function(){
 var _g_mvc={
     _loadTemplate:function(T,type){//用于加载模板,返回可用于生成模板代码的T,返回的T为函数，输入的T可以是函数，url，string,
@@ -47,12 +48,17 @@ var _g_mvc={
             staticRemoveUrl:null,
             staticCreateUrl:null,
             staticUpdateUrl:null,
+            fetchUrlName:null,//当我们给Url命名的时候，我们可以很方便的在调试的时候来调用它
+            removeUrlName:null,
+            createUrlName:null,
+            updateUrlName:null,
             debug:false,//开启debug模式后，数据的读取存储会走静态路径,如果没有静态路径，则依旧取服务器路径
             //parse: //parse是backbone自身的功能，开启次函数，支持对fetch
             bindRemove:true,//当一个model删除的时候，同步删除所有相关的view
             bindChange:null,//绑定一个model的改变将执行对应的函数来操作或改变view，该函数需要自定义
             callback:null,//当model生成完毕后返回的函数，用来对model进行后续的处理,callback将在initView建立之前执行
             initView:null,//任何一个Model都可以设定一个初始的view
+            patchKey:null,//在model中有一些属性并不需要和服务器同步，只是前端测试用的，这时候用它来过滤key就行了
             initialize:function(){
                 this.iViewlist=[];
                 this.iCollectionlist=[];
@@ -85,22 +91,39 @@ var _g_mvc={
                 var isDebug=(typeof _gDebug!="undefined"&&_gDebug)||this.debug;
                 if(!this.enableSync) return false;
                 if (method == 'create') {
-                    url=isDebug?(this.staticCreateUrl?this.staticCreateUrl:this.createUrl):this.createUrl;
+                    var name=this.createUrlName||this.createUrl;
+                    if(_g.debug&&_g.debug.enabled){
+                        _g.debug.data[name]={};
+                    }
+                    url=isDebug?(_g.debug&&_g.debug.query_user_data(name)?_g.debug.query_user_data(name):this.staticCreateUrl):this.createUrl;
                     if(!url) return;
                     options.url=url;
                 }
                 if (method == 'update'||method=="patch") {
-                    url=isDebug?(this.staticUpdateUrl?this.staticUpdateUrl:this.updateUrl):this.updateUrl;
+                    var name=this.updateUrlName||this.updateUrl;
+                    if(_g.debug&&_g.debug.enabled){
+                        _g.debug.data[name]={};
+                    }
+                    url=isDebug?(_g.debug&&_g.debug.query_user_data(name)?_g.debug.query_user_data(name):this.staticUpdateUrl):this.updateUrl;
                     if(!url) return;
                     options.url=url;
                 }
                 if (method == 'delete') {
-                    url=isDebug?(this.staticRemoveUrl?this.staticRemoveUrl:this.removeUrl):this.removeUrl;
+                    var name=this.removeUrlName||this.removeUrl;
+                    if(_g.debug&&_g.debug.enabled){
+                        _g.debug.data[name]={};
+                    }
+                    url=isDebug?(_g.debug&&_g.debug.query_user_data(name)?_g.debug.query_user_data(name):this.staticRemoveUrl):this.removeUrl;
                     if(!url) return;
                     options.url=url;
                 }
                 if (method == 'read') {
-                    url=isDebug?(this.staticFetchUrl?this.staticFetchUrl:this.fetchUrl):this.fetchUrl;
+                    var name=this.fetchUrlName||this.fetchUrl;
+                    url=isDebug?(this.staticFetchUrl):this.fetchUrl;
+                    if(_g.debug&&_g.debug.enabled){
+                        _g.debug.data[name]={};
+                    }
+                    url=isDebug?(_g.debug&&_g.debug.query_user_data(name)?_g.debug.query_user_data(name):this.staticFetchUrl):this.fetchUrl;
                     if(!url) return;
                     options.url=url;
                 }
@@ -165,6 +188,9 @@ var _g_mvc={
                 _.each(this.iViewlist,function(view){
                     if(view.$el) view.$el.remove();
                 })              
+            },
+            savePatch:function(){
+                
             }
         };
         opts=opts?$.extend(true,{},defaults,opts):defaults;
@@ -184,10 +210,12 @@ var _g_mvc={
             callback:null,//如果设定了callback，则将返回该view对象，当一个view创建后
             bindChange:null,//对于特定的view，可以有针对性的绑定一些model的改变事件，来执行相应的代码
             parseTemplate:null,//对模板数据进行处理，通常用于根据model的key来通过函数返回不同的模板
+            templateKey:null,//是否在render 模板的时候使用key ,如果设定的话，则使用{key:JSON}
+            templateName:null,//templateName 主要是用来静态调试使用，在静态页面中可以设定_gDebug.template参数来替换该模板
             initialize:function(){
                 _.bindAll(this);
                 if(this.autoRender) this.render();
-                if(this.callback) this.callback(this);
+                //if(this.callback) this.callback(this);
             },
             createEl:function(){//该函数返回一个View的Dom，供创建或替换
                 var JSON = this.model.toJSON(),T;
@@ -197,24 +225,29 @@ var _g_mvc={
                 if(this.parseTemplate){
                     T=this.parseTemplate(this.template);
                 }
-                else T=_g.parseTemplate(this.template);     
-                var el=T(JSON);
-                return el;  
+                else T=this.template; 
+                return _g.renderT(T,JSON,this.templateKey,this.templateName);
+                // if(this.templateKey) {
+                    // var dict={};
+                    // dict[this.templateKey]=JSON;
+                    // var el=T(dict);
+                 // }   
+                // else var el=T(JSON);
+                // return el;  
             },
-            render:function(callback){
+            render:function(containment,position){
                 var view=this;
-                if(!this.model||!this.template||!this.containment) return false;
-                // if(typeof this.containment=="object"){
-                    // if(!_g.util.domExist(this.containment)) this.containment=$(this.containment.selector);
-                // }
-                var containment=$(this.containment);
+                if(!this.model||!this.template) return false;
+                 if(!containment&&!this.containment) return false;
+                if(!containment) containment=$(this.containment);
+                if(!position) position=this.position;
                 if(this.wrap&&!$(this.containment).is(this.wrap)){
                     if($(this.containment).children(this.wrap).length==0) $(this.containment).append(document.createElement(this.wrap));
                     containment=$(this.containment).children(this.wrap);
                     if(this.containment&&this.wrapClassName) containment.addClass(this.wrapClassName);
                 }
                 var el=this.createEl();
-                if(this.position==1) containment.append(el);
+                if(position==1) containment.append(el);
                 else containment.prepend(el);
                 var $el=_g.ui.findById({
                     containment:containment,
@@ -224,6 +257,7 @@ var _g_mvc={
                     this.setElement($el);
                     if(this.className) this.$el.addClass(this.className);
                 }
+                if(this.callback) this.callback(this);
                 return this;
             },
             update:function(callback){
@@ -369,7 +403,7 @@ var _g_mvc={
         opts=opts?$.extend(true,{},defaults,opts):defaults;
         opts.parent=parent;
         if(!opts.collection||!opts.data) return null;
-        var clonedata=$.extend(true,{},opts.data);
+        var clonedata=$.extend(true,[],opts.data);
         if(typeof opts.collection=="function") collection=new opts.collection();
         else {
             var collectionShall=_g.mvc.createCollection(opts.collection);
@@ -439,19 +473,20 @@ var _g_mvc={
         _.each(clonedata,function(i){
             var childrendata;
             if(!i.children) childrendata=[];
-            else childrendata=$.extend(true,{},i.children);
+            else childrendata=$.extend(true,[],i.children);
             delete i.children;
             collection.add(i,{silent:true});
             var model=collection.at(collection.length-1);
             model.treeLevel=opts.treeLevel;
-            if(childrendata) {
+            console.log(childrendata);
+            //if(childrendata) {
                 model.icollection=_g.mvc.createTreeByData({
                     collection:opts.collection,
                     data:childrendata,
                     treeLevel:opts.treeLevel+1,
                     parent:model
                 })              
-            }
+            //}
         })
         return collection;
     },
@@ -465,6 +500,8 @@ var _g_mvc={
             template:null,//如果在这里设定了template参数，那么View里面的template参数就会被替换
             className:null,//定义当个View的class
             parseTemplate:null,//同createView的parseTemplate, 只不过如果在这里设定，将会替换调View的parseTemplate
+            templateKey:null,
+            templateName:null,//同View
             update:function(callback){
                 if(!this.model||!this.template||!this.containment) return false;
                 if(!_g.util.domExist(this.$el)) this.render();
@@ -495,6 +532,8 @@ var _g_mvc={
         if(opts.containment) viewextend.containment=opts.containment;
         if(opts.wrap) viewextend.wrap=opts.wrap;
         if(opts.template) viewextend.template=opts.template;
+        if(opts.templateKey) viewextend.templateKey=opts.templateKey;
+        if(opts.templateName) viewextend.templateName=opts.templateName;
         if(opts.parseTemplate){
             viewextend.parseTemplate=opts.parseTemplate;
         }
@@ -571,12 +610,13 @@ var _g_mvc={
         var models=_g.mvc.getTreeModels(collection);
         return _.find(models,function(i){return i.id==id});
     },
-    getTreeData:function(collection){//通过一个tree的collection来获得这个Tree的Data，这个Data可以供保存排序或者生成新的tree collection
+    getTreeData:function(collection,opts){//通过一个tree的collection来获得这个Tree的Data，这个Data可以供保存排序或者生成新的tree collection
         var data=[];
         collection.each(function(model){
             var dict=$.extend(true,{},model.toJSON());
+            if(opts&&opts.filter) dict=_.pick(dict,opts.filter);
             if(model.icollection){
-                dict.children=_g.mvc.getTreeData(model.icollection);
+                dict.children=_g.mvc.getTreeData(model.icollection,opts);
             }
             data.push(dict);
         })

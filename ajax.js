@@ -4,8 +4,8 @@
 /*jshint asi: true*/
 (function(){
 var _g_ajax={
-    load:function(opts){
-        return _g.ajax.get(opts);
+    load:function(opts,callback){
+        return _g.ajax.get(opts,callback);
     },
     get:function(opts,callback){//用来从服务器端取json或其他类型数据
         var defaults={
@@ -14,7 +14,8 @@ var _g_ajax={
             staticUrl:null,//用来在debug模式下取json数据的地址
             callback:null,//成功后返回的操作，将回传response的JSON数据
             parseData:null,//如果需要对静态数据进行处理，可以通过parseData来进行，比如说对静态数据进行生成
-            debug:false//除了可以全局控制debug模式的开启通过_gdebug外，还可以通过debug参数来强制使json数据走静态来取
+            debug:false,//除了可以全局控制debug模式的开启通过_gdebug外，还可以通过debug参数来强制使json数据走静态来取
+            name:null//name主要是debug用的，当开启debug的时候，我们甚至可以通过外部的方式来改变url的地址
         }
         if(typeof opts=='string') {
             defaults.url=opts;
@@ -22,19 +23,26 @@ var _g_ajax={
             opts=defaults;
         }
         else opts=opts?$.extend(true,{},defaults,opts):$.extend(true,{},defaults);
+        if(_g.debug&&_g.debug.enabled){
+            if(!opts.name) opts.name=opts.url;
+            _g.debug.data[opts.name]={};
+        }
         var isDebug=((typeof _gDebug!="undefined")&&_gDebug||opts.debug);
-        var url=((typeof _gDebug!="undefined")&&_gDebug||opts.debug)?(opts.staticUrl?opts.staticUrl:opts.url):opts.url;
+        var url=isDebug?(_g.debug&&_g.debug.query_user_data(opts.name)?_g.debug.query_user_data(opts.name):opts.staticUrl):opts.url;
+        if(!url) return false;//如果没有设定url地址，则这次ajax无效
         var returned=$.ajax({
             url:url,
             type:"GET",
             data:"",
             dataType:opts.dataType,
             success:function(data){
+                if(_g.debug&&_g.debug.enabled) _g.debug.data[opts.name].data=$.extend(true,{},data);
                 if(isDebug&&opts.parseData) data=opts.parseData(data);
                 if(opts.callback) opts.callback(data);
             },
             error:function(){
                 _g.error.serverError();
+                if(opts.onError) opts.onError(0);
             }
         })
         return returned;
@@ -46,7 +54,8 @@ var _g_ajax={
             dataType:"JSON",//默认是取JSON数据，也可以支持'html','text','jsonp'等等
             staticUrl:null,//用来在debug模式下取json数据的地址
             callback:null,//成功后返回的操作，将回传response的JSON数据
-            debug:false//除了可以全局控制debug模式的开启通过_gdebug外，还可以通过debug参数来强制使json数据走静态来取
+            debug:false,//除了可以全局控制debug模式的开启通过_gdebug外，还可以通过debug参数来强制使json数据走静态来取
+            name:null
         }
         if(typeof opts=='string') {
             defaults.url=opts;
@@ -55,17 +64,25 @@ var _g_ajax={
             opts=defaults;
         }
         else opts=opts?$.extend(true,{},defaults,opts):$.extend(true,{},defaults);
-        var url=((typeof _gDebug!="undefined")&&_gDebug||opts.debug)?(opts.staticUrl?opts.staticUrl:opts.url):opts.url;
+        if(_g.debug&&_g.debug.enabled){
+            if(!opts.name) opts.name=opts.url;
+            _g.debug.data[opts.name]={};
+        }
+        var isDebug=((typeof _gDebug!="undefined")&&_gDebug||opts.debug);
+        var url=isDebug?(_g.debug&&_g.debug.query_user_data(opts.name)?_g.debug.query_user_data(opts.name):opts.staticUrl):opts.url;
+        if(!url) return false;
         var returned=$.ajax({
             url:url,
-            type:"POST",
+            type:isDebug?"GET":"POST",//如果是开启了debug模式，则直接采用get方式来获取虚拟的静态数据
             data:opts.data,
             dataType:opts.dataType,
             success:function(data){
+                if(_g.debug&&_g.debug.enabled) _g.debug.data[opts.name].data=$.extend(true,{},data);
                 if(opts.callback) opts.callback(data);
             },
             error:function(){
                 _g.error.serverError();
+                if(opts.onError) opts.onError(0);
             }
         })
         return returned;        

@@ -8,7 +8,7 @@ var _g_i18n={
     create:function(opts){//使用jed来创建一个国际化查询库,返回由jed生成的国际化库
         defaults={
             domain:'global',//这个查询库的名称，默认为'global'
-            data:[],//一个数组包，包含了所有需要打包进去的字典数据
+           // data:[],//一个数组包，包含了所有需要打包进去的字典数据
             lang:'zh'//对应的语言
         };
         opts=opts?$.extend(true,{},defaults,opts):defaults;

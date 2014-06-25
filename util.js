@@ -37,18 +37,18 @@ var _g_util={
             attrAttr:'data-attr',//有时候需要把一个值附到某一个key中，通常用data-attr来指示这个值属于哪一个key
             allowEmpty:true //设定是否允许保留空的key，主要针对checkbox来用
         }
-        opts=opts?$.extend({},defaults,opts):defaults;
+        opts=(opts?$.extend({},defaults,opts):defaults);
         if(!opts.containment) return false;
         var target=opts.containment;
         var data={};
         var parseValue=function($this,value){
             if($this.attr('disabled')=="disabled") return;
-            var name=$this.attr('name')||$(this).attr('id');
+            var name=$this.attr('name')||$this.attr('id');
             var type=$this.attr(opts.typeAttr);
             var attr=$this.attr(opts.attrAttr);
             if(!name) return;
             if(attr){
-                if(!data[attr]) data[attr]={};
+                if(typeof data[attr]!="object") data[attr]={};
                 data[attr][name]=value;
             }
             else data[name]=value;          
@@ -61,16 +61,22 @@ var _g_util={
             parseValue($(this),value);
         })
         $(target).find('input[type="checkbox"]').each(function(){
+            //data-reverse 取反功能，对应于boolean数据可以反向取得相应的数据
             var name=$(this).attr('name')||$(this).attr('id');
             var type=$(this).attr(opts.typeAttr);
             var attr=$(this).attr(opts.attrAttr);
+            if(attr){
+                if(typeof data[attr]!="object") data[attr]={};
+            }
             var value=attr?(data[attr][name]?data[attr][name]:[]):(data[name]?data[name]:[]);
             if($(this).attr('checked')=='checked'){
-                if(type=="boolean") value=true;
+                if(type=="boolean") value=$(this).attr('data-reverse')?false:true;
                 else value.push(_g.util.getValueByType($(this).val(),type));                    
             }
             else{
-                if($(this).attr('data-type')=="boolean") value=false;
+                if($(this).attr('data-type')=="boolean") {
+                    value=$(this).attr('data-reverse')?true:false;
+                }
             }
             parseValue($(this),value);
         })
@@ -91,6 +97,9 @@ var _g_util={
                 value=_g.util.getValueByType($(this).val(),type);               
             }
             else{
+                if(attr) {
+                    if(typeof data[attr]!="object") data[attr]={};
+                }
                 value=attr?(data[attr][name]?data[attr][name]:[]):(data[name]?data[name]:[]);
                 value.push($(this).val());                              
             }
@@ -104,7 +113,9 @@ var _g_util={
             linkitem:'a',//对象，默认为所有的链接
             enabled:true//在刚建立的时候默认为开启状态，可以通过disable来关闭
         }
-        opts=opts?$.extend(true,{},defaults,opts):defaults;
+        var linkitem=opts.linkitem||defaults.linkitem;
+        opts=(opts?$.extend(true,{},defaults,opts):defaults);
+        opts.linkitem=linkitem;
         if(!opts.containment) return false;
         opts.func=function(){
             return false;
@@ -127,6 +138,26 @@ var _g_util={
     domExist:function($foo){//判断一个dom是否存在于整个html中，比如他已经被remove(),或者它的parent被remove()
         if(typeof $foo=="string") $foo=$($foo);
         return jQuery.contains(document.documentElement, $foo[0]);
+    },
+    getImageSizeBySrc:function(src,callback,limit){
+        //获取一张图片的尺寸，不得已的情况下，需要用这种方式来
+        //limit限制图片的大小精度，返回的大小按比列不会超过limit的大小
+        var img = new Image();
+        img.onload = function() {
+           if(limit&&(this.width>limit||this.height>limit)){
+               var ratio=this.width/this.height;
+               if(ratio>1){
+                   this.width=limit;
+                   this.height=this.width/ratio;
+               }
+               else{
+                   this.height=limit;
+                   this.width=this.height*ratio;
+               }
+           }
+           if(callback) callback(this.width,this.height);
+        }
+        img.src =src;
     }
 }
 if(typeof require=="undefined"){

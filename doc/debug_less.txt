@@ -1,0 +1,77 @@
+LESS的调试
+--------------
+
+less板块的调试，并不是为了能够直接在点击出来的内容中编辑成效果
+
+因为chrome等开发工具已经有css的调试功能，所以less的编辑调试主要还是通过浏览器或编辑器进行
+
+这里的less工具主要是一个在开发过程中的参考和规划，以便于协同式的开发模式
+
+1. 静态页面外部引入的参数
+   _gDebug.less=[...] , 数组的形式，数组里面是每一个dict， 这些引入的less包都是当前网站所用到的
+   
+   dict={
+      name:'interaction', //name通常是一个less Package的名称，less Package不一定是只有一个less文件，可能是一个less包，例如global全局的less
+      url:'lessT/interaction/debug.json' //这个json文件是需要手动编辑的，里面包含了这个less包的详细信息
+   }
+   
+   采取这种方式主要是为了方便我们在项目中复用所有相关的less信息，而不需要重复的写json数据
+   debug.json的结构：
+   {
+        "layout.less":{ //对应的less文件名称，可以包含详细的路径以方便查看
+            url: "lessT/interaction_edit/layout.less",//对应的文件名称的路径获取方式
+            el:[".edit-fixed-doc",".doc-layout",".doc-layout-top",".doc-layout-left",".doc-layout-center",".doc-layout-right"] //el表示这个less所对应的元素
+            //el更能够体现出面向对象的less编程方式，让协同编程的人员能够知道这个less文件到底对应哪个对象，当然如果是某个区域，只要指到某个区域的el就行，也未必需要将所有元素都填上
+       }
+   }
+   
+   某些时候我们会让el为[], 像类似,common.less , varible.less ,对于这些less文件，因为是全局性的，无法涵盖所有元素，这个时候，直接点开看内容就行了
+   
+   如果不会写JSON ,请使用在线JSON编辑器 jsoneditoronline.com
+   
+2. 调试方法
+   
+   less工具区域会显示所有初始引入的less文件，当然在线可能看不到
+   hover后会凸显less应用的元素
+   点击后可以显示less文件的内容。
+   
+
+3. 使用
+   我们在开发样式的过程中，所采用的方法是：
+   首先了解我们在项目中所使用的less模块，列入我们使用了global模块，如果使用了_g库，我们也许会用到_g less模块等等，熟悉这些模块，特别是这些模块中已经定义了的varible
+   然后我们可以在页面中建立新的less文件，同时新的less目录中，添加debug.json，在debug.json中用json语法来标记这个less所应用的对象范围，
+   这样当我们打开less工具栏，我们就可以知道这个less文件的应用范围，同时可以点击来查看less文件。
+   
+4. Less架构的编写思路
+   使用less最主要的目的是定义对象化的css布局
+   丰富的变量系统，可以使得网站的外观定制更加方便
+   以及丰富的less语法和函数，可是使得代码复用率大大提高
+   
+   此次开发less项目架构是为了能够得到一个未来可扩展使用的Less整体框架
+   所以在本次less开发过程中，既是开发过程，同时也是一个学习总结过程。
+   首先在开始一个项目之前对于less架构的大致定义
+   less目录的结构
+   
+   当我们选择使用bootstrap的时候，我们就要学会bootstrap的定制，当然当我们还不太熟悉使用代码来定制bootstrap的时候，我们可以用http://getbootstrap.com/customize/ 来在线定制
+   
+   全局的:(这些样式是全局的，在网站的任何元素页面都会其作用)
+        varibles: 顾名思义，定义全局变量的，通过简单的修改变量，我们很容易对整个网站的样式，色彩，背景做出修改
+        general.less : 全局性的总的一些样式
+        responsive.less ： 对全局的响应式样式进行设定，局部或局部元素的响应式可以放在局部less中
+        buttons.less : 定义全局的buttons样式
+        dropdown.less：dropdown这种下拉列表会用在很多的地方
+        fonts.less : 全局的字体定义
+        form.less : 表单的一些全局设定
+        icons.less : 定义全局的icons
+        mixins.less : 用来定义网站less的functions，引用
+        other.less : 其他我们可能无法定义出的一些less代码，或者有待归并的临时的代码
+        tables.less : 定义全局性的表格属性
+        utility.less : 有点像工具类的，和mixins的区别在与，mixins 更像是函数，而utility偏向于某些css的快速定义和简写，可以马上进行重复使用
+        header.less : 页面的头部区域
+        footer.less : 页面布局对应的footer区域
+   
+   对象性的：
+       components目录: 每个页面都会有一些比较特殊的组成部分，如sidebar ,navbar ,panel ,popupwindow 等等
+       widget 目录 ：定义每个页面的插件 ，widgets可能是一些更小的网页部件
+       thirdparty 目录 ： 第三方组件的目录，主要是对第三方的组件样式进行一些补丁
+       

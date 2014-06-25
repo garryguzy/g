@@ -1,0 +1,1 @@
+<button type="button" class="btn btn-default <%=data.size?("btn-"+data.size):""%>"><%=data.i||""%><%=data.name||""%></button>

@@ -1,9 +1,15 @@
-g
+_g
 =
 
-g lib for javascript function extend
+_g lib for javascript function extend
 
-This module is a function extend for jquery , backbone and some module else .
+This module is a function extend for jquery , backbone and many many js module or js applications .
+
+So I think _g lib is a platform for those who like to use js packages modules and also want to improve it .
+
+_g is reference or what to say a demo that shows how to custom and make combination usage of different js packages .
+
+More over , we base on the main on solve problem and fit requirement more than code optim
 
 The lib is aim to provide a extension or improvement for js lib . 
 
